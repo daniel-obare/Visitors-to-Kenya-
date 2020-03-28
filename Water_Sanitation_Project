@@ -1,0 +1,93 @@
+# load required packages for web application
+
+require(magrittr)
+require(dplyr)
+require(tidyr)
+require(lubridate)
+require(ggplot2)
+theme_set(theme_classic())
+library(shiny)
+require(shinydashboard)
+
+# user interface populated code 
+ui <- dashboardPage(
+
+             dashboardHeader(title = "Visitors to Kenya between 1991 to 2014 For Developers"),
+          # side bar menu category
+             dashboardSidebar(
+    
+                    sidebarMenu(
+                        menuItem("Totals", tabName = "Totals", icon = icon(name = "dashboard", lib = "glyphicon")),
+                        menuItem("Distincton", tabName = "Distincton", icon = icon(name = "charts", lib = "glyphicon"))
+                    )),
+                    
+           # Main body panel
+           
+             dashboardBody(
+             # main body tablets
+                tabItems(
+                    tabItem("Totals", 
+                            fluidRow(valueBoxOutput(outputId = "value.1"),
+                                     valueBoxOutput(outputId =  "value.2")),
+                            fluidRow(box(plotOutput("totalvisit"), title = "Summary of visits (Totals) per Year to Kenya", 
+                                         status = "primary", solidHeader = TRUE, width = 8, height = "100%"))),
+                    tabItem("Distincton",
+                            box(selectInput(inputId = "states", label = "states: ", 
+                                            choices = c("status", "purpose", "quarter", "results_status")), width = 4),
+                            box(plotOutput("vis"), width = 8))
+                )
+            )
+
+)
+
+ 
+# server to source code 
+
+server <- function(input, output) {
+    
+    output$value.1 <- renderValueBox({
+        valueBox(value =  69890900 , subtitle ="Total no. of visits" , color = "light-blue",
+                 icon = icon(name = "thumbs-up", lib = "glyphicon"))
+    })
+    
+    output$value.2 <- renderValueBox({
+        valueBox(value = 2496104, subtitle = "Avergae visits to Kenya", color = "yellow", 
+                 icon = icon(name = "thumbs-up", lib = "glyphicon"))
+    })
+
+    output$totalvisit <- renderPlot({
+        
+        totals <- Visitors_to_Kenya_between1991_to_2014_For_Developers %>% rename(year = Year_Text) %>% 
+            group_by(year) %>% summarise(Total_visitors = sum(No_of_Visitors_to_Kenya))
+        
+        totals %>%  ggplot(aes(year ,Total_visitors))+
+            geom_bar(stat = "identity", fill = "blue")+
+            ggtitle("Total number of visitors in Kenya per Year")+
+            ylab("Number of Visits (Totals)")+
+            geom_text(aes(label = Total_visitors), hjust = 1.5, color = "white", size = 3)+
+            coord_flip()
+    })
+    
+    output$vis <- renderPlot({
+        
+        
+        visitor <- Visitors_to_Kenya_between1991_to_2014_For_Developers %>% select(-OBJECTID) %>% 
+            mutate(Date_End_of_Quater = mdy_hms(Date_End_of_Quater)) %>% rename(status = ï..Arrival_or_Departure,
+                                                                                year = Year_Text,
+                                                                                quarter = Period_Quater,
+                                                                                visits = No_of_Visitors_to_Kenya,
+                                                                                purpose = Visitors_by_Purpose) %>% 
+            group_by(year) %>% janitor::clean_names()
+        
+        visitor %>% ggplot(aes(visitor[[input$states]], visits))+
+            geom_bar(stat = "identity", fill = "blue")+
+            ggtitle("Visitors to Kenya since 1991 to 2014")+
+            ylab("Number of visits")+
+            geom_text(aes(label = visits), color= "white", hjust = 1.5, size = 3)+
+            coord_flip()
+    })
+        
+}
+
+# Run the application 
+shinyApp(ui = ui, server = server)
