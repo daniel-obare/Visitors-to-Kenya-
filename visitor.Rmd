@@ -1,0 +1,135 @@
+---
+title: "Visitors to Kenya between 1991-2014"
+author: "Daniel Obare"
+date: "1/9/2020"
+output: 
+  html_document:
+    keep_md: yes
+    number_sections: yes
+    theme: united
+    toc: yes
+    toc_depth: 4
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      warning = FALSE, 
+                      message = FALSE)
+```
+
+# Package Library
+
+## Load desired package libraries
+
+```{r packages}
+require(dplyr)
+require(tidyr)
+require(magrittr)
+require(ggplot2)
+require(ggthemes)
+theme_set(theme_classic())
+require(kableExtra)
+require(lubridate)
+load(file = "visitor.Rdata")
+```
+
+## The raw data itself
+
+```{r vis data}
+attach(Visitors_to_Kenya_between1991_to_2014_For_Developers)
+Visitors_to_Kenya_between1991_to_2014_For_Developers %>% kable() %>% kable_styling() %>% 
+  scroll_box(width = "100%", height = "300px")
+```
+
+## Summary Statistics and Structure
+
+We take a look at the **Summary statistics** and it's **Structure**
+
+```{r dataset}
+vis = Visitors_to_Kenya_between1991_to_2014_For_Developers
+attach(vis)
+vis %>% str()
+vis %>% summary()
+```
+
+# Arrivals or Departures
+
+## Structure
+
+```{r structure}
+vis$Arrival_or_Departure = as.factor(vis$Arrival_or_Departure)
+vis$Arrival_or_Departure %>% summary()
+```
+## visual of Arrivals or Departures
+
+```{r plot}
+vis %>% ggplot(aes(Arrival_or_Departure))+
+  geom_bar()+
+  ggtitle("Arrivals or Departures")
+```
+
+# Date_End_of_Quater
+
+## Date Formatting
+
+The Quarter ends at **mid-night** that is 12:00:00 AM 
+
+```{r date formatting}
+vis$Date_End_of_Quater = vis$Date_End_of_Quater %>%  mdy_hms()
+vis$Date_End_of_Quater %>% summary()
+```
+
+# Number of Visitors to Kenya
+
+## Check for any errors and data wrangling
+
+```{r}
+summary(vis$No_of_Visitors_to_Kenya)
+vis %>% is.na() %>% any()
+
+x <- vis %>% select(-OBJECTID) %>% mutate(Year_Text = factor(Year_Text)) %>% 
+  mutate(Visitors_by_Purpose = factor(Visitors_by_Purpose)) %>% 
+  mutate(Period_Quater = factor(Period_Quater)) %>% mutate(Results_Status = factor(Results_Status)) %>% 
+  group_by(No_of_Visitors_to_Kenya) %>% 
+  janitor::clean_names()
+```
+
+## visual of the number of visitors to Kenya
+
+```{r}
+normalize <- function(x){
+  return((x-min(x))/(max(x)-min(x)))
+}
+
+x %>% ggplot(aes(visitors_by_purpose, normalize(no_of_visitors_to_kenya)))+
+  geom_bar(stat = "identity", fill = "blue")+
+  coord_flip()+
+  xlab("visito by purpose")+
+  ylab("number of visitors")+
+  ggtitle("Number of visitors by Purpose")
+
+x %>% ggplot(aes(visitors_by_purpose, normalize(no_of_visitors_to_kenya)))+
+  geom_bar(stat = "identity", fill = "blue")+
+  coord_flip()+
+  xlab("visito by purpose")+
+  ylab("number of visitors")+
+  ggtitle("Number of visitors by Purpose")+
+  facet_wrap(~period_quater)
+
+x %>% ggplot(aes(visitors_by_purpose, normalize(no_of_visitors_to_kenya)))+
+  geom_bar(stat = "identity", fill = "blue")+
+  coord_flip()+
+  xlab("visito by purpose")+
+  ylab("number of visitors")+
+  ggtitle("Number of visitors by Purpose")+
+  facet_wrap(~results_status)
+
+```
+
+
+
+
